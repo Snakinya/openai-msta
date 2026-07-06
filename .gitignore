@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+eval_artifacts/
+evaluation_artifacts/
+.venv/
+*.egg-info/
