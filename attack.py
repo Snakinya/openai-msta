@@ -35,9 +35,22 @@ the hosted models; nothing here depends on a specific fixture's contents.
 
 from __future__ import annotations
 
+import glob as _glob
+import sys as _sys
 import time
 from collections.abc import Sequence
+from pathlib import Path as _Path
 from typing import Any
+
+# On Kaggle, ``aicomp_sdk`` / ``kaggle_evaluation`` live in the competition
+# dataset rather than site-packages. The inference server adds them to the path
+# before importing this module, but we re-assert it defensively so the file also
+# imports cleanly if executed from an unusual working directory.
+for _candidate in _glob.glob("/kaggle/input/**/kaggle_evaluation", recursive=True):
+    _root = str(_Path(_candidate).parent)
+    if _root not in _sys.path:
+        _sys.path.insert(0, _root)
+    break
 
 from aicomp_sdk import AttackAlgorithmBase, AttackCandidate, AttackRunConfig
 

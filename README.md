@@ -13,7 +13,7 @@ and scores.
 | File | Purpose |
 | --- | --- |
 | `attack.py` | The submission. Exploration-based, replay-verified attack search. |
-| `notebook.ipynb` | Kaggle submission notebook: writes `attack.py` to `/kaggle/working/` and starts the competition inference server (`serve()` on the hidden rerun; `run_local_gateway()` against the deterministic agent on interactive commit). |
+| `notebook.ipynb` | Kaggle submission notebook: bootstraps the dataset import path, writes `attack.py` to `/kaggle/working/`, and starts the inference server. Hidden rerun → `serve()` blocks and the gateway writes `submission.csv`; visible commit → `run_local_gateway()` (deterministic agent) emits a `submission.csv` so the notebook is submittable via the CLI/API. |
 | `scripts/build_notebook.py` | Regenerates `notebook.ipynb` from `attack.py` (single source of truth). |
 | `tests/test_local.py` | Local pipeline check against the deterministic agent. |
 
