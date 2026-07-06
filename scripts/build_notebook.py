@@ -15,9 +15,10 @@ ATTACK_SRC = (ROOT / "attack.py").read_text(encoding="utf-8")
 NOTEBOOK_PATH = ROOT / "notebook.ipynb"
 
 
-def code_cell(source: str) -> dict:
+def code_cell(source: str, cell_id: str) -> dict:
     return {
         "cell_type": "code",
+        "id": cell_id,
         "execution_count": None,
         "metadata": {},
         "outputs": [],
@@ -25,9 +26,10 @@ def code_cell(source: str) -> dict:
     }
 
 
-def md_cell(source: str) -> dict:
+def md_cell(source: str, cell_id: str) -> dict:
     return {
         "cell_type": "markdown",
+        "id": cell_id,
         "metadata": {},
         "source": source.splitlines(keepends=True),
     }
@@ -35,8 +37,12 @@ def md_cell(source: str) -> dict:
 
 INTRO = """# AI Agent Security — Multi-Step Tool Attacks
 
-This notebook writes `attack.py` to `/kaggle/working/` for the hosted evaluator,
-then runs an optional offline smoke test against the deterministic agent.
+This notebook (1) writes `attack.py` to `/kaggle/working/` and (2) starts the
+competition inference server. During the hidden rerun, `server.serve()` blocks
+and the competition gateway drives the attack against GPT-OSS / Gemma under the
+public and private guardrails, writing `submission.csv`. During an interactive
+commit, `run_local_gateway()` runs the same flow locally against the fast
+deterministic agent so the commit produces a valid `submission.csv`.
 
 `AttackAlgorithm` explores the live tool-using agent, keeps only replay-verified
 chains that trip a security predicate, amplifies them across tool-argument knobs
@@ -44,34 +50,27 @@ for novelty, and sizes its output to the replay budget. See `README.md` for the
 full write-up.
 """
 
-WRITE_HEADER = "# Materialize the submission file the evaluator loads.\n" '%%writefile /kaggle/working/attack.py\n'
+# NOTE: %%writefile must be the very FIRST line of the cell (no preceding
+# comment), otherwise Jupyter treats it as an unknown line magic and errors.
+WRITE_HEADER = "%%writefile /kaggle/working/attack.py\n"
 
-SMOKE = '''# Optional offline smoke test (safe to skip; requires the packaged SDK).
-try:
-    import importlib.util, sys
+SERVE = '''import os
 
-    spec = importlib.util.spec_from_file_location("attack", "/kaggle/working/attack.py")
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+# On the hidden rerun the competition gateway sets this and drives the attack
+# against GPT-OSS / Gemma. Locally we run a fast deterministic gateway pass so
+# the interactive commit still emits a valid submission.csv.
+if not os.getenv("KAGGLE_IS_COMPETITION_RERUN"):
+    os.environ.setdefault("AICOMP_MODEL_NAMES", "deterministic")
 
-    from aicomp_sdk.agents import AgentSelection
-    from aicomp_sdk.evaluation.runner import evaluate_redteam
-    from aicomp_sdk.evaluation.ops import AttackGuardrailSpec
-    from aicomp_sdk.guardrails.base import GuardrailBase
+from kaggle_evaluation.jed_attack_134815.jed_attack_inference_server import (
+    JEDAttackInferenceServer,
+)
 
-    spec_g = AttackGuardrailSpec(id="smoke", version="0", guardrail_factory=GuardrailBase)
-    execution = evaluate_redteam(
-        mod.AttackAlgorithm,
-        budget_s=60,
-        agent_selection=AgentSelection.DETERMINISTIC,
-        env_selection="sandbox",
-        attack_guardrail_spec=spec_g,
-    )
-    a = execution.attack
-    print(f"smoke: score={a.score:.2f} raw={a.score_raw:.1f} "
-          f"findings={a.findings_count} unique_cells={a.unique_cells}")
-except Exception as exc:  # pragma: no cover
-    print("smoke test skipped:", exc)
+server = JEDAttackInferenceServer()
+if os.getenv("KAGGLE_IS_COMPETITION_RERUN"):
+    server.serve()
+else:
+    server.run_local_gateway()
 '''
 
 
@@ -79,9 +78,9 @@ def main() -> None:
     write_cell_source = WRITE_HEADER + ATTACK_SRC
     notebook = {
         "cells": [
-            md_cell(INTRO),
-            code_cell(write_cell_source),
-            code_cell(SMOKE),
+            md_cell(INTRO, "intro"),
+            code_cell(write_cell_source, "write-attack"),
+            code_cell(SERVE, "serve"),
         ],
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
