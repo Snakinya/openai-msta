@@ -67,7 +67,9 @@ class _CompliantEnv:
 
 
 class _Cfg:
-    time_budget_s = 8.0
+    # Large budget so the (instant) mock exercises budget-filling duplication
+    # rather than being bounded by the fixed per-candidate overhead.
+    time_budget_s = 600.0
     max_steps = 10**9
     max_tool_hops = 8
 
