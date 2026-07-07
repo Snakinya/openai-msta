@@ -464,17 +464,29 @@ class AttackAlgorithm(AttackAlgorithmBase):
         out: list[AttackCandidate] = []
         used = 0.0
 
-        # 1) One of each distinct cell, richest weighted score first.
-        for cand, _score, _n, replay_s in sorted(items, key=lambda v: v[1], reverse=True):
+        # Baseline value of spending replay budget on another copy of the best
+        # already-verified chain. A distinct cell is only worth taking first if
+        # its weighted score plus the one-time +2 novelty bonus is at least this
+        # dense; otherwise it lowers total raw score by displacing a better copy.
+        best = max(items, key=lambda v: v[1] / max(cost(v[3]), 1e-6))
+        best_cand, best_score, _bn, best_replay = best
+        best_cost = cost(best_replay)
+        best_density = best_score / max(best_cost, 1e-6)
+
+        def first_use_density(item: tuple[AttackCandidate, int, int, float]) -> float:
+            return (item[1] + 2.0) / max(cost(item[3]), 1e-6)
+
+        # 1) Take only distinct cells whose novelty-adjusted density clears the
+        # duplicate-best baseline.
+        for cand, _score, _n, replay_s in sorted(items, key=first_use_density, reverse=True):
+            if first_use_density((cand, _score, _n, replay_s)) < best_density:
+                break
             if len(out) >= self._MAX_CANDIDATES or used + cost(replay_s) > time_budget:
                 break
             out.append(cand)
             used += cost(replay_s)
 
         # 2) Duplicate the best weighted-score-per-second chain to spend what remains.
-        best = max(items, key=lambda v: v[1] / max(cost(v[3]), 1e-6))
-        best_cand, _bs, _bn, best_replay = best
-        best_cost = cost(best_replay)
         while len(out) < self._MAX_CANDIDATES and used + best_cost <= time_budget:
             out.append(best_cand)
             used += best_cost
