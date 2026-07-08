@@ -55,11 +55,26 @@ HARNESS = r'''import glob, os, time
 
 MODEL = os.environ.get("AICOMP_MODEL_NAMES", "gpt_oss")  # "gpt_oss" or "gemma"
 
-def _find(p):
-    h = glob.glob(f"/kaggle/input/**/{p}", recursive=True)
-    return h[0] if h else ""
-os.environ.setdefault("GPT_OSS_MODEL_PATH", _find("gpt-oss-20b-Q4_K_M.gguf"))
-os.environ.setdefault("GEMMA_MODEL_PATH", _find("gemma-4-26B-A4B-it-UD-Q4_K_M.gguf"))
+def _all_ggufs():
+    return glob.glob("/kaggle/input/**/*.gguf", recursive=True)
+
+def _find_gguf(*needles):
+    needles = tuple(n.lower() for n in needles)
+    hits = []
+    for path in _all_ggufs():
+        low = path.lower()
+        if all(n in low for n in needles):
+            hits.append(path)
+    return sorted(hits, key=len)[0] if hits else ""
+
+print("Mounted GGUF files:")
+for p in _all_ggufs():
+    print("  ", p)
+
+os.environ.setdefault("GPT_OSS_MODEL_PATH", _find_gguf("gpt", "oss", "20b"))
+os.environ.setdefault("GEMMA_MODEL_PATH", _find_gguf("gemma", "26b"))
+print("GPT_OSS_MODEL_PATH:", os.environ.get("GPT_OSS_MODEL_PATH") or "NOT FOUND")
+print("GEMMA_MODEL_PATH  :", os.environ.get("GEMMA_MODEL_PATH") or "NOT FOUND")
 
 from aicomp_sdk.core.env.api import EnvSelection
 from aicomp_sdk.evaluation.ops import build_attack_env, resolve_fixtures_dir

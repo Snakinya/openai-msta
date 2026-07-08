@@ -149,12 +149,24 @@ RUN = '''import glob, os
 
 # Point the model servers at the GGUF files mounted from the attached Kaggle
 # models (no Hugging Face download needed). _resolve_model_path prefers these.
-def _find(pattern):
-    hits = glob.glob(f"/kaggle/input/**/{pattern}", recursive=True)
-    return hits[0] if hits else ""
+def _all_ggufs():
+    return glob.glob("/kaggle/input/**/*.gguf", recursive=True)
 
-gpt_path = _find("gpt-oss-20b-Q4_K_M.gguf")
-gemma_path = _find("gemma-4-26B-A4B-it-UD-Q4_K_M.gguf")
+def _find_gguf(*needles):
+    needles = tuple(n.lower() for n in needles)
+    hits = []
+    for path in _all_ggufs():
+        low = path.lower()
+        if all(n in low for n in needles):
+            hits.append(path)
+    return sorted(hits, key=len)[0] if hits else ""
+
+print("Mounted GGUF files:")
+for p in _all_ggufs():
+    print("  ", p)
+
+gpt_path = _find_gguf("gpt", "oss", "20b")
+gemma_path = _find_gguf("gemma", "26b")
 if gpt_path:
     os.environ["GPT_OSS_MODEL_PATH"] = gpt_path
 if gemma_path:

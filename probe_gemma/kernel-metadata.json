@@ -1,0 +1,21 @@
+{
+  "id": "snakinya/msta-probe-gemma",
+  "title": "MSTA Probe Gemma",
+  "code_file": "notebook.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "machine_shape": "NvidiaTeslaT4",
+  "enable_tpu": false,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "competition_sources": [
+    "ai-agent-security-multi-step-tool-attacks"
+  ],
+  "kernel_sources": [],
+  "model_sources": [
+    "llkh0a/gpt-oss-20b-gguf/PyTorch/default/1",
+    "llkh0a/gemma-4-26b-a4b-it-ud-q4-k-m-gguf/PyTorch/default/1"
+  ]
+}
