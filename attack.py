@@ -166,7 +166,7 @@ _FARM_CHAIN_LEN: int = 8
 # candidate still incurs model latency.
 _DIRECT_MIN_BUDGET_S: float = 1000.0
 _DIRECT_EXFIL_PER_9000S: int = 108
-_DIRECT_DEPUTY_PER_9000S: int = 1800
+_DIRECT_DEPUTY_PER_9000S: int = 0
 
 
 def _single_post_message(url: str) -> str:
@@ -526,7 +526,7 @@ class AttackAlgorithm(AttackAlgorithmBase):
         exfil_count = min(120, max(24, int(_DIRECT_EXFIL_PER_9000S * scale)))
         deputy_count = min(
             self._MAX_CANDIDATES - exfil_count,
-            max(250, int(_DIRECT_DEPUTY_PER_9000S * scale)),
+            max(0, int(_DIRECT_DEPUTY_PER_9000S * scale)),
         )
 
         out: list[AttackCandidate] = []
